@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aviation Ace</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <!-- Tone.js library for audio -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(to bottom, #87ceeb, #c3e0f4); /* Sky gradient */
+            font-family: 'Press Start 2P', cursive;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            -webkit-user-select: none; /* Disable text selection for better game feel */
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        #game-container {
+            position: relative;
+            background-color: #5bbde7; /* Blue sky background */
+            border: 8px solid #333;
+            border-radius: 20px;
+            overflow: hidden; /* Hide anything outside the canvas */
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            width: 95vw; /* Fluid width for responsiveness */
+            max-width: 800px; /* Max width for desktop */
+            aspect-ratio: 16 / 9; /* Maintain aspect ratio */
+            box-sizing: border-box;
+        }
+
+        canvas {
+            display: block;
+            background-color: transparent; /* Sky background handled by body/container */
+            border-radius: 10px;
+            width: 100%; /* Canvas takes full width of container */
+            height: 100%; /* Canvas takes full height of container */
+        }
+
+        #score-display {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 1.5em;
+            color: #fff;
+            text-shadow: 3px 3px 0 #000;
+            z-index: 10;
+        }
+
+        #mute-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border: 2px solid #fff;
+            color: white;
+            padding: 8px 12px;
+            font-size: 0.9em;
+            cursor: pointer;
+            border-radius: 5px;
+            z-index: 10;
+            font-family: 'Press Start 2P', cursive;
+            text-shadow: none;
+        }
+        #mute-button:hover {
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+
+        #game-over-screen, #start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+            text-align: center;
+            font-size: 1.2em;
+            z-index: 20;
+            border-radius: 10px;
+        }
+
+        #game-over-screen h2, #start-screen h2 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            color: #ffdd00;
+            text-shadow: 4px 4px 0 #c00000;
+        }
+
+        #game-over-screen p {
+            font-size: 1.8em;
+            margin-bottom: 30px;
+        }
+
+        .game-button {
+            background-color: #4CAF50; /* Green */
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 1.2em;
+            margin: 10px;
+            cursor: pointer;
+            border-radius: 10px;
+            box-shadow: 0 5px #388e3c; /* Darker green shadow */
+            transition: all 0.2s ease;
+            font-family: 'Press Start 2P', cursive;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        .game-button:hover {
+            background-color: #45a049;
+            box-shadow: 0 3px #388e3c;
+            transform: translateY(2px);
+        }
+
+        .game-button:active {
+            background-color: #3e8e41;
+            box-shadow: 0 0 #3e8e41;
+            transform: translateY(5px);
+        }
+
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 0.9em;
+            line-height: 1.6;
+            z-index: 10;
+            max-width: 200px;
+        }
+        #instructions h3 {
+            margin-top: 0;
+            color: #fff;
+            text-shadow: none;
+        }
+        #instructions ul {
+            list-style: disc;
+            padding-left: 20px;
+            margin: 0;
+            color: #ddd;
+        }
+
+        @media (max-width: 600px) {
+            #score-display {
+                font-size: 1em;
+                top: 10px;
+                left: 10px;
+            }
+            #game-over-screen h2, #start-screen h2 {
+                font-size: 1.8em;
+            }
+            #game-over-screen p {
+                font-size: 1.2em;
+            }
+            .game-button {
+                padding: 10px 20px;
+                font-size: 1em;
+            }
+            #instructions {
+                display: none; /* Hide instructions on small screens to save space */
+            }
+            #mute-button {
+                padding: 5px 8px;
+                font-size: 0.8em;
+                top: 10px;
+                right: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="score-display">Score: <span id="score">0</span></div>
+        <button id="mute-button">Mute</button>
+
+        <div id="start-screen">
+            <h2>Aviation Ace</h2>
+            <p>Ready for takeoff?</p>
+            <button class="game-button" id="startButton">Start Game</button>
+        </div>
+
+        <div id="game-over-screen" style="display: none;">
+            <h2>Game Over!</h2>
+            <p>Final Score: <span id="finalScore">0</span></p>
+            <button class="game-button" id="restartButton">Play Again</button>
+        </div>
+
+        <div id="instructions">
+            <h3>How to Play:</h3>
+            <ul>
+                <li>Desktop: Move mouse up/down OR use Up/Down arrow keys.</li>
+                <li>Mobile: Touch and drag finger up/down to control plane.</li>
+                <li>Dodge clouds/mountains!</li>
+                <li>Collect coins for points!</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('score');
+        const startScreen = document.getElementById('start-screen');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const finalScoreDisplay = document.getElementById('finalScore');
+        const startButton = document.getElementById('startButton');
+        const restartButton = document.getElementById('restartButton');
+        const muteButton = document.getElementById('mute-button');
+        const instructionsPanel = document.getElementById('instructions'); // Get reference to instructions panel
+
+        let gameRunning = false;
+        let animationFrameId;
+        let score = 0;
+        let isMuted = false; // Initial mute state
+
+        // Player Plane Properties
+        const player = {
+            x: 50,
+            y: canvas.height / 2, // Initial Y position
+            width: 60,
+            height: 30,
+            speedY: 0, // Vertical speed
+            gravity: 0.2, // Simulate slight downward pull
+            liftAcceleration: 0.8, // How quickly the plane accelerates up/down with keys
+            damping: 0.95, // How quickly the speed decreases when keys are released
+            maxSpeed: 8,
+            keyUpPressed: false,
+            keyDownPressed: false
+        };
+
+        // Obstacle Properties
+        const obstacles = [];
+        const obstacleSpeed = 3;
+        const obstacleSpawnInterval = 1000; // milliseconds
+        let lastObstacleSpawnTime = 0;
+
+        // Coin Properties
+        const coins = [];
+        const coinSpeed = 3;
+        const coinSpawnInterval = 700; // milliseconds
+        let lastCoinSpawnTime = 0;
+
+        // Game State Variables
+        let planeMoved = false; // To check if the player has moved the plane after game starts
+
+        // Tone.js Audio Setup
+        let backgroundSynth, coinSynth, collisionSynth, masterVolume;
+
+        // Initialize audio components (will start Tone.js context on first interaction)
+        function initializeAudio() {
+            if (Tone.context.state !== 'running') {
+                Tone.start(); // This is crucial for audio to play in browsers
+            }
+
+            // Master Volume (for mute/unmute)
+            masterVolume = new Tone.Volume(0).toDestination(); // Start at 0 volume, will set to -10db if not muted
+
+            // Background Music Synth
+            backgroundSynth = new Tone.Synth({
+                oscillator: { type: "sawtooth" },
+                envelope: {
+                    attack: 0.5,
+                    decay: 0.1,
+                    sustain: 0.7,
+                    release: 1
+                }
+            }).connect(masterVolume);
+
+            // Simple looping melody
+            const melody = ["C4", "E4", "G4", "C5"];
+            let noteIndex = 0;
+            const backgroundLoop = new Tone.Loop(time => {
+                backgroundSynth.triggerAttackRelease(melody[noteIndex], "8n", time);
+                noteIndex = (noteIndex + 1) % melody.length;
+            }, "4n").start(0);
+
+            // Coin Collection Sound
+            coinSynth = new Tone.PluckSynth().connect(masterVolume); // Good for short, percussive sounds
+
+            // Collision Sound
+            collisionSynth = new Tone.NoiseSynth({
+                noise: {
+                    type: "pink"
+                },
+                envelope: {
+                    attack: 0.005,
+                    decay: 0.2,
+                    sustain: 0,
+                    release: 0.1
+                }
+            }).connect(masterVolume);
+
+            // Set initial volume based on mute state
+            updateMuteState();
+        }
+
+        // Function to update the mute state
+        function updateMuteState() {
+            if (isMuted) {
+                masterVolume.volume.value = -Infinity; // Mute
+                muteButton.textContent = "Unmute";
+            } else {
+                masterVolume.volume.value = -10; // Normal volume (adjust as needed)
+                muteButton.textContent = "Mute";
+            }
+        }
+
+        // Toggle mute/unmute
+        muteButton.addEventListener('click', () => {
+            isMuted = !isMuted;
+            updateMuteState();
+        });
+
+        // Function to resize canvas
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            // Adjust player initial position if canvas size changes during game over/start
+            player.y = Math.max(player.height / 2, Math.min(canvas.height - player.height / 2, player.y));
+            drawBackground(); // Redraw background after resize
+        }
+
+        // Add event listener for window resize
+        window.addEventListener('resize', resizeCanvas);
+
+        // Call resize once on load to set initial size
+        window.onload = function() {
+            resizeCanvas();
+            showStartScreen();
+            initializeAudio(); // Initialize audio context on load, but it won't play until Tone.start() on user interaction
+        };
+
+        /**
+         * Draws the player plane on the canvas.
+         */
+        function drawPlayer() {
+            ctx.fillStyle = '#C0C0C0'; // Silver
+            ctx.beginPath();
+            // Main body
+            ctx.moveTo(player.x, player.y);
+            ctx.lineTo(player.x - player.width / 2, player.y - player.height / 2);
+            ctx.lineTo(player.x - player.width / 2, player.y + player.height / 2);
+            ctx.closePath();
+            ctx.fill();
+
+            // Cockpit (simple rectangle)
+            ctx.fillRect(player.x - player.width / 4, player.y - player.height / 4, player.width / 2, player.height / 2);
+
+            // Wings (simple triangles)
+            ctx.beginPath();
+            ctx.moveTo(player.x - player.width / 4, player.y - player.height / 2);
+            ctx.lineTo(player.x - player.width / 2 + 5, player.y - player.height / 2 - 15);
+            ctx.lineTo(player.x + player.width / 4, player.y - player.height / 2);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(player.x - player.width / 4, player.y + player.height / 2);
+            ctx.lineTo(player.x - player.width / 2 + 5, player.y + player.height / 2 + 15);
+            ctx.lineTo(player.x + player.width / 4, player.y + player.height / 2);
+            ctx.closePath();
+            ctx.fill();
+
+            // Tail fin (simple rectangle)
+            ctx.fillRect(player.x - player.width * 0.7, player.y - player.height / 4, player.width * 0.2, player.height / 2);
+        }
+
+        /**
+         * Draws an obstacle (cloud or mountain) on the canvas.
+         * @param {object} obstacle - The obstacle object with x, y, width, height, and type.
+         */
+        function drawObstacle(obstacle) {
+            if (obstacle.type === 'cloud') {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'; // White cloud
+                ctx.beginPath();
+                // Simple cloud shape with multiple circles
+                ctx.arc(obstacle.x, obstacle.y, obstacle.width / 2, 0, Math.PI * 2);
+                ctx.arc(obstacle.x + obstacle.width * 0.3, obstacle.y - obstacle.height * 0.2, obstacle.width / 2.5, 0, Math.PI * 2);
+                ctx.arc(obstacle.x - obstacle.width * 0.3, obstacle.y - obstacle.height * 0.2, obstacle.width / 2.5, 0, Math.PI * 2);
+                ctx.arc(obstacle.x + obstacle.width * 0.2, obstacle.y + obstacle.height * 0.2, obstacle.width / 2.8, 0, Math.PI * 2);
+                ctx.arc(obstacle.x - obstacle.width * 0.2, obstacle.y + obstacle.height * 0.2, obstacle.width / 2.8, 0, Math.PI * 2);
+                ctx.closePath();
+                ctx.fill();
+            } else if (obstacle.type === 'mountain') {
+                ctx.fillStyle = '#654321'; // Brown mountain
+                ctx.beginPath();
+                ctx.moveTo(obstacle.x - obstacle.width / 2, canvas.height); // Bottom-left
+                ctx.lineTo(obstacle.x, canvas.height - obstacle.height); // Peak
+                ctx.lineTo(obstacle.x + obstacle.width / 2, canvas.height); // Bottom-right
+                ctx.closePath();
+                ctx.fill();
+
+                // Snow cap (optional)
+                ctx.fillStyle = '#F0F0F0';
+                ctx.beginPath();
+                ctx.moveTo(obstacle.x - obstacle.width / 4, canvas.height - obstacle.height + obstacle.height * 0.2);
+                ctx.lineTo(obstacle.x, canvas.height - obstacle.height);
+                ctx.lineTo(obstacle.x + obstacle.width / 4, canvas.height - obstacle.height + obstacle.height * 0.2);
+                ctx.closePath();
+                ctx.fill();
+            }
+        }
+
+        /**
+         * Draws a coin on the canvas.
+         * @param {object} coin - The coin object with x, y, and radius.
+         */
+        function drawCoin(coin) {
+            ctx.fillStyle = '#FFD700'; // Gold color
+            ctx.strokeStyle = '#DAA520'; // Darker gold for border
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(coin.x, coin.y, coin.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Draw a dollar sign or simple shine effect
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.fillRect(coin.x - 2, coin.y - coin.radius / 2, 4, coin.radius); // Vertical bar
+            ctx.beginPath();
+            ctx.arc(coin.x, coin.y - coin.radius / 4, coin.radius / 4, 0, Math.PI, true); // Top curve
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(coin.x, coin.y + coin.radius / 4, coin.radius / 4, 0, Math.PI, false); // Bottom curve
+            ctx.stroke();
+        }
+
+        /**
+         * Updates the player's position based on speed, gravity, and keyboard input, and keeps it within canvas bounds.
+         */
+        function updatePlayer() {
+            if (player.keyUpPressed) {
+                // Accelerate upwards, clamped by maxSpeed
+                player.speedY = Math.max(-player.maxSpeed, player.speedY - player.liftAcceleration);
+            } else if (player.keyDownPressed) {
+                // Accelerate downwards, clamped by maxSpeed
+                player.speedY = Math.min(player.maxSpeed, player.speedY + player.liftAcceleration);
+            } else {
+                // If no keys pressed, gradually apply gravity and damping
+                if (Math.abs(player.speedY) > player.gravity) {
+                    player.speedY *= player.damping; // Damping effect
+                } else {
+                    player.speedY += player.gravity; // Apply gravity if speed is low
+                }
+            }
+
+            player.y += player.speedY; // Update position
+
+            // Keep player within canvas bounds
+            if (player.y - player.height / 2 < 0) {
+                player.y = player.height / 2;
+                player.speedY = 0; // Stop vertical movement when hitting top
+            }
+            if (player.y + player.height / 2 > canvas.height) {
+                player.y = canvas.height - player.height / 2;
+                player.speedY = 0; // Stop vertical movement when hitting bottom
+            }
+        }
+
+        /**
+         * Updates obstacles' positions and spawns new ones.
+         */
+        function updateObstacles(currentTime) {
+            // Spawn new obstacles
+            if (currentTime - lastObstacleSpawnTime > obstacleSpawnInterval) {
+                const type = Math.random() < 0.5 ? 'cloud' : 'mountain';
+                let newObstacle;
+
+                if (type === 'cloud') {
+                    const width = 80 + Math.random() * 50;
+                    const height = 40 + Math.random() * 30;
+                    const y = Math.random() * (canvas.height - height) + height / 2;
+                    newObstacle = { x: canvas.width + width, y: y, width: width, height: height, type: 'cloud' };
+                } else { // Mountain
+                    const width = 100 + Math.random() * 80;
+                    const height = 80 + Math.random() * 60;
+                    newObstacle = { x: canvas.width + width, y: canvas.height, width: width, height: height, type: 'mountain' };
+                }
+                obstacles.push(newObstacle);
+                lastObstacleSpawnTime = currentTime;
+            }
+
+            // Move and remove obstacles
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                const obs = obstacles[i];
+                obs.x -= obstacleSpeed;
+
+                if (obs.x + obs.width < 0) {
+                    obstacles.splice(i, 1); // Remove obstacle if off-screen
+                }
+            }
+        }
+
+        /**
+         * Updates coins' positions and spawns new ones.
+         */
+        function updateCoins(currentTime) {
+            // Spawn new coins
+            if (currentTime - lastCoinSpawnTime > coinSpawnInterval) {
+                const radius = 15;
+                const y = Math.random() * (canvas.height - radius * 2) + radius;
+                coins.push({ x: canvas.width + radius, y: y, radius: radius });
+                lastCoinSpawnTime = currentTime;
+            }
+
+            // Move and remove coins
+            for (let i = coins.length - 1; i >= 0; i--) {
+                const coin = coins[i];
+                coin.x -= coinSpeed;
+
+                if (coin.x + coin.radius < 0) {
+                    coins.splice(i, 1); // Remove coin if off-screen
+                }
+            }
+        }
+
+        /**
+         * Checks for collisions between the player and obstacles.
+         * @returns {boolean} True if a collision occurred, false otherwise.
+         */
+        function checkCollisions() {
+            for (const obs of obstacles) {
+                if (obs.type === 'cloud') {
+                    // Simple AABB collision for cloud
+                    if (player.x + player.width / 2 > obs.x - obs.width / 2 &&
+                        player.x - player.width / 2 < obs.x + obs.width / 2 &&
+                        player.y + player.height / 2 > obs.y - obs.height / 2 &&
+                        player.y - player.height / 2 < obs.y + obs.height / 2) {
+                        return true;
+                    }
+                } else if (obs.type === 'mountain') {
+                    // Collision for mountain (triangle vs AABB) - simplified for now
+                    // Check if player's bounding box overlaps with mountain's approximate bounding box
+                    if (player.x + player.width / 2 > obs.x - obs.width / 2 &&
+                        player.x - player.width / 2 < obs.x + obs.width / 2 &&
+                        player.y + player.height / 2 > canvas.height - obs.height) { // Only check bottom collision
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        /**
+         * Checks for collisions between the player and coins, and collects them.
+         */
+        function collectCoins() {
+            for (let i = coins.length - 1; i >= 0; i--) {
+                const coin = coins[i];
+                // Simple circle-rectangle collision check
+                const distX = Math.abs(coin.x - player.x);
+                const distY = Math.abs(coin.y - player.y);
+
+                if (distX <= (player.width / 2 + coin.radius) && distY <= (player.height / 2 + coin.radius)) {
+                    score += 10; // Increase score
+                    scoreDisplay.textContent = score;
+                    if (!isMuted) {
+                        coinSynth.triggerAttackRelease("C5", "16n"); // Play coin sound effect
+                    }
+                    coins.splice(i, 1); // Remove collected coin
+                }
+            }
+        }
+
+        // Draw a simple sky background
+        function drawBackground() {
+            // Background gradient is handled by CSS body background for better performance and mobile adaptation
+            // We can draw distant mountains or clouds if needed, but for simplicity, let's keep it minimal on canvas.
+            // ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas for each frame
+        }
+
+        /**
+         * The main game loop.
+         * @param {DOMHighResTimeStamp} currentTime - The current time provided by requestAnimationFrame.
+         */
+        function gameLoop(currentTime) {
+            if (!gameRunning) return;
+
+            // Clear the entire canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Update game elements
+            updatePlayer();
+            updateObstacles(currentTime);
+            updateCoins(currentTime);
+            collectCoins();
+
+            // Draw game elements
+            drawPlayer();
+            obstacles.forEach(drawObstacle);
+            coins.forEach(drawCoin);
+
+            // Check for game over condition
+            if (checkCollisions()) {
+                endGame();
+                return; // Stop the loop
+            }
+
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        /**
+         * Starts the game. Resets score, player position, clears arrays, and starts the game loop.
+         */
+        function startGame() {
+            // Start Tone.js audio context on user interaction (first button click)
+            initializeAudio();
+
+            gameRunning = true;
+            score = 0;
+            scoreDisplay.textContent = score;
+            player.y = canvas.height / 2;
+            player.speedY = 0;
+            obstacles.length = 0; // Clear obstacles
+            coins.length = 0; // Clear coins
+            lastObstacleSpawnTime = 0;
+            lastCoinSpawnTime = 0;
+            planeMoved = false; // Reset movement flag
+            player.keyUpPressed = false; // Reset key states
+            player.keyDownPressed = false;
+
+            hideScreens();
+            canvas.style.display = 'block'; // Ensure canvas is visible
+            instructionsPanel.style.display = 'none'; // Hide instructions while playing
+            
+            // Start background music
+            if (!isMuted) {
+                backgroundSynth.triggerAttack(); // Start continuous tone
+            }
+            gameLoop(0); // Start the loop
+        }
+
+        /**
+         * Ends the game. Stops the animation, shows game over screen, and displays final score.
+         */
+        function endGame() {
+            gameRunning = false;
+            cancelAnimationFrame(animationFrameId); // Stop the game loop
+            finalScoreDisplay.textContent = score;
+            
+            // Play collision sound
+            if (!isMuted) {
+                collisionSynth.triggerAttackRelease("8n"); // Play noise burst
+            }
+
+            // Stop background music
+            backgroundSynth.triggerRelease();
+
+            showGameOverScreen();
+            instructionsPanel.style.display = 'block'; // Show instructions on game over
+        }
+
+        /**
+         * Shows the start screen and hides other elements.
+         */
+        function showStartScreen() {
+            startScreen.style.display = 'flex';
+            gameOverScreen.style.display = 'none';
+            canvas.style.display = 'none'; // Hide canvas initially
+            instructionsPanel.style.display = 'block'; // Show instructions on start screen
+            // Ensure background music is stopped if it was playing from a previous game
+            if (backgroundSynth) {
+                backgroundSynth.triggerRelease();
+            }
+        }
+
+        /**
+         * Shows the game over screen and hides other elements.
+         */
+        function showGameOverScreen() {
+            gameOverScreen.style.display = 'flex';
+            startScreen.style.display = 'none';
+            canvas.style.display = 'none'; // Hide canvas
+        }
+
+        /**
+         * Hides all overlay screens.
+         */
+        function hideScreens() {
+            startScreen.style.display = 'none';
+            gameOverScreen.style.display = 'none';
+        }
+
+        // Event listeners for buttons
+        startButton.addEventListener('click', startGame);
+        restartButton.addEventListener('click', startGame);
+
+        // Input handling for player movement (Mouse and Touch)
+
+        let touchY = player.y; // To store touch Y position
+
+        function handlePointerMove(event) {
+            if (!gameRunning) return; // Only process movement if game is running
+
+            // Only apply mouse/touch movement if no keyboard keys are actively pressed
+            if (!player.keyUpPressed && !player.keyDownPressed) {
+                let currentY;
+                if (event.type === 'mousemove') {
+                    currentY = event.clientY - canvas.getBoundingClientRect().top;
+                } else if (event.type === 'touchmove') {
+                    currentY = event.touches[0].clientY - canvas.getBoundingClientRect().top;
+                    event.preventDefault(); // Prevent scrolling on touch devices
+                }
+
+                // Calculate target Y within canvas bounds
+                const targetY = Math.max(player.height / 2, Math.min(canvas.height - player.height / 2, currentY));
+
+                // Adjust player's vertical speed based on target Y
+                const diffY = targetY - player.y;
+                player.speedY = diffY * 0.1; // Smooth following speed
+                player.speedY = Math.max(-player.maxSpeed, Math.min(player.maxSpeed, player.speedY)); // Clamp speed
+            }
+            planeMoved = true; // Player has initiated movement
+        }
+
+        function handlePointerUp(event) {
+            if (!gameRunning) return;
+            // Only let gravity take over if no keyboard keys are actively pressed
+            if (!player.keyUpPressed && !player.keyDownPressed) {
+                player.speedY = 0; // Or a small value to let gravity take over
+            }
+        }
+
+        // Add event listeners for mouse and touch
+        canvas.addEventListener('mousemove', handlePointerMove);
+        canvas.addEventListener('mouseup', handlePointerUp);
+        canvas.addEventListener('touchmove', handlePointerMove);
+        canvas.addEventListener('touchend', handlePointerUp);
+        canvas.addEventListener('touchcancel', handlePointerUp); // Handle touch being interrupted
+
+        // Keyboard input handling
+        window.addEventListener('keydown', (event) => {
+            if (!gameRunning) return;
+            if (event.key === 'ArrowUp') {
+                player.keyUpPressed = true;
+                player.keyDownPressed = false; // Ensure both aren't true
+                event.preventDefault(); // Prevent default browser scroll
+            } else if (event.key === 'ArrowDown') {
+                player.keyDownPressed = true;
+                player.keyUpPressed = false; // Ensure both aren't true
+                event.preventDefault(); // Prevent default browser scroll
+            }
+        });
+
+        window.addEventListener('keyup', (event) => {
+            if (!gameRunning) return;
+            if (event.key === 'ArrowUp') {
+                player.keyUpPressed = false;
+            } else if (event.key === 'ArrowDown') {
+                player.keyDownPressed = false;
+            }
+        });
+
+    </script>
+</body>
+</html>
